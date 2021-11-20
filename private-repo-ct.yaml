@@ -1,0 +1,33 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8sprivaterepo
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sPrivateRepo
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            privaterepo:
+              type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sprivaterepo
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not startswith(container.image, input.parameters.privaterepo)
+
+          msg := sprintf("you must use our private repo: %v", [input.parameters.privaterepo])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.template.spec.containers[_]
+          not startswith(container.image, input.parameters.privaterepo)
+
+          msg := sprintf("you must use our private repo: %v", [input.parameters.privaterepo])
+        }

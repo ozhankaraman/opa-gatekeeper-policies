@@ -1,0 +1,30 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8scheckdeploymentns
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sCheckDeploymentNs
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            message:
+              type: string
+            namespace:
+              type: array
+              items: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8salwaysdeny
+
+        violation[{"msg": msg, "details": {}}] {
+          value := input.review.object.metadata.namespace
+          namespace := input.parameters.namespace[_]
+          value == namespace
+          msg := sprintf("Deployed Namespace is prohibited. You are trying to deploy over: %v namespace", [value])
+
+        }
